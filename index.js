@@ -2,28 +2,35 @@ const { Extension, log, INPUT_METHOD, PLATFORMS } = require('deckboard-kit');
 const { Query } = require('node-wmi');
 
 const CATEGORIZATION = {
-	load: {
-		'Memory': 'ram',
-		'CPU Total': 'cpu',
-		'GPU Core': 'gpu'
-	},
-	temperature: {
-		'CPU Package': 'cpu',
-		'GPU Core': 'gpu'
-	}
+    load: {
+        'Memory': 'ram',
+        'CPU Total': 'cpu',
+        'GPU Core': 'gpu'
+    },
+    temperature: {
+        'CPU Package': 'cpu',
+        'GPU Core': 'gpu'
+    },
+    data: { // SensorType
+        'Used Memory': 'used', // Name: Key
+        'Available Memory': 'avail'
+    }
 }
 
-const SUFFIX = {
-	load: '%',
-	temperature: '°C'
+const SUFFIX = { // Related to SensorType
+    load: '%',
+    temperature: '°C',
+    data: ' GB'
 }
 
-const DEFAULT_VALUE = {
-	'hw-load-cpu': '-%',
-	'hw-load-gpu': '-%',
-	'hw-load-ram': '-%',
-	'hw-temperature-cpu': '-°C',
-	'hw-temperature-gpu': '-°C'
+const DEFAULT_VALUE = { // hw-SensorType-Key
+    'hw-load-cpu': '-%',
+    'hw-load-gpu': '-%',
+    'hw-load-ram': '-%',
+    'hw-temperature-cpu': '-°C',
+    'hw-temperature-gpu': '-°C',
+    'hw-data-used': '? GB',
+    'hw-data-avail': '? GB'
 }
 
 class OpenHardwareMonitor extends Extension {
@@ -69,6 +76,25 @@ class OpenHardwareMonitor extends Extension {
 						]
 					}
 				]
+			},
+			{
+				label: 'Display RAM Stats',
+				value: 'hw-ram',
+				icon: 'headphones',
+				mode: 'custom-value',
+				fontIcon: 'fas',
+				color: '#8E44AD',
+				input: [
+					{
+						label: 'Select monitor',
+						type: INPUT_METHOD.INPUT_SELECT,
+						items: [
+							{ value: 'hw-load-ram', label: 'RAM Load %' },
+							{ value: 'hw-data-ram', label: 'RAM Used GB' }, // value as in DEFAULT_VALUE
+							{ value: 'hw-data-avail', label: 'RAM Available GB' }
+						]
+					}
+				]
 			}
 		];
 		this.configs = [];
@@ -81,7 +107,7 @@ class OpenHardwareMonitor extends Extension {
 				Query()
 					.namespace('root/OpenHardwareMonitor')
 					.class('Sensor')
-					.where("SensorType='Load' OR SensorType='Temperature'")
+					.where("SensorType='Load' OR SensorType='Temperature' OR SensorType='Data'") // All SensorTypes
 					.exec((err, data) => {
 						if (err || !data)
 							this.setValue(DEFAULT_VALUE)
